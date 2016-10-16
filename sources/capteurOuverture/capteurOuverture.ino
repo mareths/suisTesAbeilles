@@ -2,7 +2,8 @@
 #include <avr/power.h>
 
 const byte interruptPin = 3;
-volatile int timer=0;
+int nbMinuteTimeout = 2;
+volatile int timer=1;
 
 void setup() {
   Serial.begin(9600);
@@ -55,7 +56,7 @@ void loop() {
   sleepNow();     // sleep function called here
 
   //cycle d'une minute
-  if (timer > 14) {
+  if (timer > 15*nbMinuteTimeout) {
     Serial.println("Je me reveille");
     delay(5000);
     Serial.println("Je collecte des donnes");
@@ -63,7 +64,7 @@ void loop() {
     Serial.println("Je les envoie au module Lora");
     delay(5000);
     Serial.println("J'ai fini");
-    timer = 0;
+    timer = 1;
   }
 }
 
