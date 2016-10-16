@@ -1,10 +1,10 @@
 #include "HX711.h"
 
 // Entree digitale
-// OUT	        - pin 3
-// Clock (SDK)	- pin 2
+// OUT	        - pin 11
+// Clock (SDK)	- pin 10
 
-HX711 scale(3, 2);
+HX711 scale(11, 10);
 
 void setup() {
 // pour suivre sur la sortie (a desactiver...?)  
