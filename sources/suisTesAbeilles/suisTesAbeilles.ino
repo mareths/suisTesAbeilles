@@ -13,6 +13,7 @@
 #include <Bmp180.h> // for barometric sensor
 #include <avr/sleep.h> // for idle mode
 #include <avr/power.h> // for idle mode
+#include "DHT.h" // for DHT22
 
 // Idle mode
 int nbMinuteTimeout = 2; // delay of mode idle
@@ -24,6 +25,11 @@ Bmp180 bmp180;
 // Switch open roof sensor
 const byte interruptPin = 3; // only one interrupt pin on the airboard
 
+// DHT22
+#define DHTPIN 13 // broche ou l'on a branche le capteur
+#define DHTTYPE DHT22 // DHT 22 (AM2302)
+DHT dht(DHTPIN, DHTTYPE);//déclaration du capteur
+
 #ifdef DEBUG
 // We define the pins for the software Serial that will allows us to
 // debug our code.
@@ -33,15 +39,21 @@ const byte interruptPin = 3; // only one interrupt pin on the airboard
 // ---------------------------------------------------------------------
 // Global variables
 // ---------------------------------------------------------------------
-byte msgData[6];           // Store the data to be uploaded to Objeniou's Network
+// Message to Objenious platform
+byte msgData[12];           // Store the data to be uploaded to Objeniou's Network
 byte msgRoof[1];         // Message wich be send then roof is open 
 
+// BMP180
 int pressureBMP180;
 int temperatureBMP180;
 
+// DHT22
+int humidityDHT22;
+int temperatureDHT22;
+int indexTemperatureDHT22;
+
 //Instance of  the class Arm
 Arm Objenious; // Needed to make work the LoRaWAN module
-
 
 // ---------------------------------------------------------------------
 // Config
@@ -136,6 +148,12 @@ void setup()
     Wire.begin();
     bmp180.calibration();
 
+// ---------------------------------------------------------------------
+// DHT22 init
+// ---------------------------------------------------------------------
+
+    dht.begin();
+
 } // End of setup()
 
 
@@ -162,6 +180,12 @@ void setup()
 //  msgData [3] : 1st byte of pression from the BMP180
 //  msgData [4] : 2nd byte of pression from the BMP180
 //  msgData [5] : 3rd byte of pression from the BMP180
+//  msgData [6] : 1st byte of humidity from the DHT22
+//  msgData [7] : 2nd byte of humidity from the DHT22
+//  msgData [8] : 1st byte of temperature from the DHT22
+//  msgData [9] : 2nd byte of temperature from the DHT22
+//  msgData [10] : 1st byte of the index temperature from the DHT22
+//  msgData [11] : 2nd byte of the index temperature from the DHT22
 // .....................................................................
 // msgRoof [0] : 2 = Alarm of switch open roof 
 // ---------------------------------------------------------------------
@@ -196,14 +220,26 @@ void loop()
                  //   - 1 = SuisTesAbeilles data
                  //   - 2 = Switch open roof alarm
   
-    // Put temperature in the msgData
+    // Put BMP180 temperature in the msgData
     msgData[1] = (byte) (temperatureBMP180>>8);
     msgData[2] = (byte) temperatureBMP180;
   
-    // Put temperature in the msgData
+    // Put BMP180 temperature in the msgData
     msgData[3] = (byte) (pressureBMP180>>16);
     msgData[4] = (byte) (pressureBMP180>>8);
     msgData[5] = (byte) pressureBMP180;
+  
+    // Put DHT22 humidity in the msgData
+    msgData[6] = (byte) (humidityDHT22>>8);
+    msgData[7] = (byte) humidityDHT22;
+  
+    // Put DHT22 temperature in the msgData
+    msgData[8] = (byte) (temperatureDHT22>>8);
+    msgData[9] = (byte) temperatureDHT22;
+  
+    // Put DHT22 index of temperature in the msgData
+    msgData[10] = (byte) (indexTemperatureDHT22>>8);
+    msgData[11] = (byte) indexTemperatureDHT22;
   
 #ifdef DEBUG
     logDebugData();
@@ -251,9 +287,28 @@ ISR(TIMER1_OVF_vect)
  *
  ***************************************************/
 void collectData() {
-  //BMP180
-  temperatureBMP180 = (bmp180.getTemperature(bmp180.readUT())*100); //MUST be called first
-  pressureBMP180 = bmp180.getPressure(bmp180.readUP());
+  // BMP180
+  temperatureBMP180 = (bmp180.getTemperature(bmp180.readUT())*100); // collect the temperature in Celsius,
+                                                                    // multiple by 100 to have an integer value
+  pressureBMP180 = bmp180.getPressure(bmp180.readUP()); // collect the pressure
+  
+  // DHT22
+  humidityDHT22 = (dht.readHumidity()*100); // collect hygrometry, multiple by 100 to have an integer value
+  temperatureDHT22 = dht.readTemperature(); // collect the temperature in Celsius,
+                                            // multiple by 100 to have an integer value
+ 
+  if (isnan(humidityDHT22) || isnan(temperatureDHT22)) // check if the collect is OK
+  {
+#ifdef DEBUG
+    mySerial.println("Failed to read from DHT sensor!");
+#endif
+    humidityDHT22 = 0;
+    temperatureDHT22 = 0;
+  }
+
+  indexTemperatureDHT22 = (dht.computeHeatIndex(temperatureDHT22, humidityDHT22, false)*100); // calcul the index
+                                               // of temperature in Celsius, multiple by 100 to have an integer value
+  
 } // End of collectData()
 
 /***************************************************
@@ -333,14 +388,14 @@ void switchCapteurOuverture() {
  *
  ***************************************************/
 void logDebugData() {
-  mySerial.print("Celsius: "); 
+  mySerial.print("BMP180 - Temperature: "); 
   mySerial.print(temperatureBMP180); 
   mySerial.print(" - "); 
   mySerial.print(msgData[1]); 
   mySerial.print(" "); 
   mySerial.println(msgData[2]); 
 
-  mySerial.print("Pression: "); 
+  mySerial.print("BMP180 - Pressure: "); 
   mySerial.print(pressureBMP180); 
   mySerial.print(" - "); 
   mySerial.print(msgData[3]); 
@@ -348,6 +403,30 @@ void logDebugData() {
   mySerial.print(msgData[4]); 
   mySerial.print(" "); 
   mySerial.println(msgData[5]); 
+
+  mySerial.print("DHT22 - Humidity: "); 
+  mySerial.print(humidityDHT22); 
+  mySerial.print(" - "); 
+  mySerial.print(msgData[6]); 
+  mySerial.print(" "); 
+  mySerial.println(msgData[7]); 
+
+  mySerial.print("DHT22 - Temperature: "); 
+  mySerial.print(temperatureDHT22); 
+  mySerial.print(" - "); 
+  mySerial.print(msgData[8]); 
+  mySerial.print(" "); 
+  mySerial.println(msgData[9]);
+
+  mySerial.print("DHT22 - Index of Temperature: "); 
+  mySerial.print(indexTemperatureDHT22); 
+  mySerial.print(" - "); 
+  mySerial.print(msgData[10]); 
+  mySerial.print(" "); 
+  mySerial.println(msgData[11]);
+
+
+
 } // End of logDebugData()
 #endif
 
