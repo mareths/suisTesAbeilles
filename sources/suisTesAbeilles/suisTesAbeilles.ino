@@ -294,7 +294,7 @@ void collectData() {
   
   // DHT22
   humidityDHT22 = (dht.readHumidity()*100); // collect hygrometry, multiple by 100 to have an integer value
-  temperatureDHT22 = dht.readTemperature(); // collect the temperature in Celsius,
+  temperatureDHT22 = (dht.readTemperature()*100); // collect the temperature in Celsius,
                                             // multiple by 100 to have an integer value
  
   if (isnan(humidityDHT22) || isnan(temperatureDHT22)) // check if the collect is OK
