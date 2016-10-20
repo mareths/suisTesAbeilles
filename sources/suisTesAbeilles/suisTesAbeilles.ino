@@ -1,4 +1,3 @@
-
 // ---------------------------------------------------------------------
 // Include
 // ---------------------------------------------------------------------
@@ -7,16 +6,17 @@
 #include <Wire.h>
 #include <Bmp180.h>
 
-// Debug flag
-bool debug = true;
+// To comment in the real life !
+#define DEBUG
 
 // Create object from library
 Bmp180 bmp180;
 
+#ifdef DEBUG
 // We define the pins for the software Serial that will allows us to
 // debug our code.
   SoftwareSerial mySerial(10, 11); // Pin 10 will work as RX and Pin 11 as TX
-
+#endif
 
 // ---------------------------------------------------------------------
 // Global variables
@@ -36,11 +36,11 @@ Arm Objenious; // Needed to make work the LoRaWAN module
 void setup()
 {     
     // set the data rate for the SoftwareSerial port (Debug mode only)
-    if (debug) {
-      mySerial.begin(9600); 
-      mySerial.println("Software serial test OK!"); 
-      // If you see the message on your serial monitor it is working!
-    }
+#ifdef DEBUG
+    mySerial.begin(9600); 
+    mySerial.println("Software serial test OK!"); 
+    // If you see the message on your serial monitor it is working!
+#endif
 
     // BMP180 init
     Wire.begin();
@@ -54,15 +54,13 @@ void setup()
     //Init of the LoRaWAN module - Red light if error, Green light if Ok 
     if(Objenious.Init(&Serial) != ARM_ERR_NONE)
     {
-      if (debug) {
+#ifdef DEBUG
         mySerial.println("Network Error"); // Debug
-      }
     }
     else
     {
-      if (debug) {
         mySerial.println("Connected to Objenious"); // Debug
-      }
+#endif
     }
 
     // Configuration of the LoRaWAN module
@@ -87,28 +85,19 @@ void setup()
 // Here starts your code :D
 // ---------------------------------------------------------------------
 
-    msgg[0]=7; // This byte will indicate to Objeniou's platform what kind
-               // of sketch we are using anf hence how to decode the data:
-               //   - 1 = Temperature data
-               //   - 2 = Push button data
-               //   - 3 = Window/Door open data
-               //   - 7 = SuisTesAbeilles data
+
 }
 
 
 // ---------------------------------------------------------------------
 // How the code works:
-// The sensor is read by the "Thermistor" function and then is multiplied
-// by 100 in order to avoid decimal number.
-// The mySerial function will print the information on the virtual Serial
-// so we can debug.
 // The temperature data is an Int, hence 2bytes of data. This data is stored
 // in the "msgg" buffer before being uploaded to Objeniou's platform. To do 
 // that we need to copy byte by byte. Example:
-// int temp = 2348 (23,48°C * 100) // example valule...
+// int temperature = 2348 (23,48°C * 100) // example valule...
 //
 // dec  ->   Byte 1     Byte 2
-// 2348 -> 0000 1001  0010 1100 (binary representation of 2348. http://www.exploringbinary.com/binary-converter/)
+// 2348 -> 0000 1001  0010 1100 (binary representation of 2348.
 //
 // Then we store the fisrt Byte in msgg[1] and the sencond byte in msgg[2]
 // Objenious.Send will uoload the data to our LoRaNetwork.
@@ -119,6 +108,12 @@ void loop()
   // Collect data
   collectData();
 
+  // Build of the message to Objenious
+  msgg[0] = 1; // This byte will indicate to Objeniou's platform what kind
+               // of sketch we are using anf hence how to decode the data:
+               //   - 1 = SuisTesAbeilles data
+               //   - 2 = Switch open roof alarm
+
   // Put temperature in the msgg
   msgg[1] = (byte) (temperatureBMP180>>8);
   msgg[2] = (byte) temperatureBMP180;
@@ -128,10 +123,10 @@ void loop()
   msgg[4] = (byte) (pressureBMP180>>8);
   msgg[5] = (byte) pressureBMP180;
 
+#ifdef DEBUG
   // For Debug
-  if (debug) {
-    logDebug();
-  }
+  logDebug();
+#endif
 
   Objenious.Send(msgg, sizeof(msgg));               // Send the temp to Objenious network        
 
@@ -144,6 +139,8 @@ void collectData() {
   pressureBMP180 = bmp180.getPressure(bmp180.readUP());
 }
 
+
+#ifdef DEBUG
 void logDebug() {
   mySerial.print("Celsius: "); 
   mySerial.print(temperatureBMP180); 
@@ -161,5 +158,6 @@ void logDebug() {
   mySerial.print(" "); 
   mySerial.println(msgg[5]); 
 }
+#endif
 
 
