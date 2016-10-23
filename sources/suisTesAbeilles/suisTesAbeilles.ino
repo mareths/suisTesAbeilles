@@ -14,6 +14,7 @@
 #include <avr/sleep.h> // for idle mode
 #include <avr/power.h> // for idle mode
 #include "DHT.h" // for DHT22
+#include "HX711.h" // for weight sensor
 
 // Idle mode
 int nbMinuteTimeout = 2; // delay of mode idle
@@ -30,6 +31,12 @@ const byte interruptPin = 3; // only one interrupt pin on the airboard
 #define DHTTYPE DHT22 // DHT 22 (AM2302)
 DHT dht(DHTPIN, DHTTYPE);//déclaration du capteur
 
+// Weight sensor
+// OUT          - pin 11
+// Clock (SDK)  - pin 10
+HX711 scale(11, 10);
+
+// No Weight sensor in DEBUG mode
 #ifdef DEBUG
 // We define the pins for the software Serial that will allows us to
 // debug our code.
@@ -51,6 +58,9 @@ int temperatureBMP180;
 int humidityDHT22;
 int temperatureDHT22;
 int indexTemperatureDHT22;
+
+// Weight sensor
+long weight;
 
 //Instance of  the class Arm
 Arm Objenious; // Needed to make work the LoRaWAN module
@@ -154,6 +164,13 @@ void setup()
 
     dht.begin();
 
+// ---------------------------------------------------------------------
+// Weight sensor init
+// ---------------------------------------------------------------------
+
+  scale.set_scale(-24000.f);
+  scale.tare();
+
 } // End of setup()
 
 
@@ -186,6 +203,8 @@ void setup()
 //  msgData [9] : 2nd byte of temperature from the DHT22
 //  msgData [10] : 1st byte of the index temperature from the DHT22
 //  msgData [11] : 2nd byte of the index temperature from the DHT22
+//  msgData [12] : 1st byte of the weight from the weight sensor
+//  msgData [13] : 2nd byte of the weight from the weight sensor
 // .....................................................................
 // msgRoof [0] : 2 = Alarm of switch open roof 
 // ---------------------------------------------------------------------
@@ -240,6 +259,10 @@ void loop()
     // Put DHT22 index of temperature in the msgData
     msgData[10] = (byte) (indexTemperatureDHT22>>8);
     msgData[11] = (byte) indexTemperatureDHT22;
+  
+    // Put weight in the msgData
+    msgData[12] = (byte) (weight>>8);
+    msgData[13] = (byte) weight;
   
 #ifdef DEBUG
     logDebugData();
@@ -308,6 +331,9 @@ void collectData() {
 
   indexTemperatureDHT22 = (dht.computeHeatIndex(temperatureDHT22, humidityDHT22, false)*100); // calcul the index
                                                // of temperature in Celsius, multiple by 100 to have an integer value
+
+  // Weight sensor
+  weight = scale.read_average(10);
   
 } // End of collectData()
 
@@ -328,6 +354,9 @@ void sleepNow() {
   set_sleep_mode(SLEEP_MODE_IDLE);   // MODE_IDLE to be wake up by timer1
   sleep_enable();          // enables the sleep bit in the mcucr register
 
+  /* Weight sensor shutdown */
+  scale.power_down();
+
   /* Disable all of the unused peripherals. This will reduce power
    * consumption further and, more importantly, some of these
    * peripherals may generate interrupts that will wake our Arduino from
@@ -344,8 +373,12 @@ void sleepNow() {
   // THE PROGRAM CONTINUES FROM HERE AFTER WAKING UP  
   sleep_disable();         // first thing after waking from sleep: disable sleep...
 
-    /* Re-enable the peripherals. */
+  /* Re-enable the peripherals. */
   power_all_enable();
+
+  /* Wake up weight sensor */
+  scale.power_up();
+
 } // End of sleepNow()
 
 /***************************************************
@@ -425,6 +458,12 @@ void logDebugData() {
   mySerial.print(" "); 
   mySerial.println(msgData[11]);
 
+  mySerial.print("Weight sensor - Weight: "); 
+  mySerial.print(weight); 
+  mySerial.print(" - "); 
+  mySerial.print(msgData[12]); 
+  mySerial.print(" "); 
+  mySerial.println(msgData[13]);
 
 
 } // End of logDebugData()
