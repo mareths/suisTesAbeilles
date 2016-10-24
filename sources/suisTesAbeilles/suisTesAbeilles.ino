@@ -1,5 +1,12 @@
 // Comment for the real life !
-#define DEBUG
+//#define DEBUG
+// Uncomment number of sensor
+//#define DS18B20_0 // 1 DS18B20
+//#define DS18B20_1 // 2 DS18B20
+//#define DS18B20_2 // 3 DS18B20
+//#define DS18B20_3 // 4 DS18B20
+#define DS18B20_4 // 5 DS18B20
+
 
 // ---------------------------------------------------------------------
 // Include
@@ -10,11 +17,20 @@
 
 #include <arm.h> //ATIM library for LoRaWAN connection
 #include <Wire.h> // for barometric sensor
+// Ajouter la librairie BMP180 dans le repertoire lib
 #include <Bmp180.h> // for barometric sensor
 #include <avr/sleep.h> // for idle mode
 #include <avr/power.h> // for idle mode
+// Ajouter la librairie via Croquis/Inclure une librairie/Gerer les bibliothéques, et chercher dht22
 #include "DHT.h" // for DHT22
+// Ajouter la librairie HX711 dans le repertoire lib
 #include "HX711.h" // for weight sensor
+// Ajouter la librairie via Croquis/Inclure une librairie/Gerer les bibliothéques, et chercher onewire,
+//    rajouter la librairie "MAX31850 OneWire by Adafruit"
+#include <OneWire.h> // for DS18B20 sensor
+// Ajouter la librairie via Croquis/Inclure une librairie/Gerer les bibliothéques, et chercher ds18b20, 
+//    rajouter la librairie "DallasTemperature"
+#include <DallasTemperature.h> // for DS18B20 sensor
 
 // Idle mode
 int nbMinuteTimeout = 2; // delay of mode idle
@@ -36,6 +52,9 @@ DHT dht(DHTPIN, DHTTYPE);//déclaration du capteur
 // Clock (SDK)  - pin 10
 HX711 scale(11, 10);
 
+// Data wire is plugged into port 2 on the Arduino
+#define ONE_WIRE_BUS 12
+
 // No Weight sensor in DEBUG mode
 #ifdef DEBUG
 // We define the pins for the software Serial that will allows us to
@@ -46,21 +65,65 @@ HX711 scale(11, 10);
 // ---------------------------------------------------------------------
 // Global variables
 // ---------------------------------------------------------------------
-// Message to Objenious platform
-byte msgData[12];           // Store the data to be uploaded to Objeniou's Network
 byte msgRoof[1];         // Message wich be send then roof is open 
 
+////////////////////
 // BMP180
 int pressureBMP180;
 int temperatureBMP180;
 
+////////////////////
 // DHT22
 int humidityDHT22;
 int temperatureDHT22;
 int indexTemperatureDHT22;
 
+////////////////////
 // Weight sensor
 long weight;
+
+////////////////////
+// DS18B20
+// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
+OneWire oneWire(ONE_WIRE_BUS);
+// Pass our oneWire reference to Dallas Temperature. 
+DallasTemperature sensors(&oneWire);
+// Lenght of message to Objenious platform depends of number of DS18B20 sensors number
+#ifdef DS18B20_0
+byte msgData[16];           // Store the data to be uploaded to Objeniou's Network
+// arrays to hold device addresses
+DeviceAddress sondeNumero0;
+// global variable for temp0 and temp1
+int temp0;
+#endif
+#ifdef DS18B20_1
+byte msgData[18];           // Store the data to be uploaded to Objeniou's Network
+// arrays to hold device addresses
+DeviceAddress sondeNumero0, sondeNumero1;
+// global variable for temp0 and temp1
+int temp0, temp1;
+#endif
+#ifdef DS18B20_2
+byte msgData[20];           // Store the data to be uploaded to Objeniou's Network
+// arrays to hold device addresses
+DeviceAddress sondeNumero0, sondeNumero1, sondeNumero2;
+// global variable for temp0 and temp1
+int temp0, temp1, temp2;
+#endif
+#ifdef DS18B20_3
+byte msgData[22];           // Store the data to be uploaded to Objeniou's Network
+// arrays to hold device addresses
+DeviceAddress sondeNumero0, sondeNumero1, sondeNumero2, sondeNumero3;
+// global variable for temp0 and temp1
+int temp0, temp1, temp2, temp3;
+#endif
+#ifdef DS18B20_4
+byte msgData[24];           // Store the data to be uploaded to Objeniou's Network
+// arrays to hold device addresses
+DeviceAddress sondeNumero0, sondeNumero1, sondeNumero2, sondeNumero3, sondeNumero4;
+// global variable for temp0 and temp1
+int temp0, temp1, temp2, temp3, temp4;
+#endif
 
 //Instance of  the class Arm
 Arm Objenious; // Needed to make work the LoRaWAN module
@@ -171,6 +234,67 @@ void setup()
   scale.set_scale(-24000.f);
   scale.tare();
 
+// ---------------------------------------------------------------------
+// DS18B20 sensor init
+// ---------------------------------------------------------------------
+  sensors.begin();
+
+#if (defined DS18B20_0 || defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
+    // search for devices on the bus and assign based on an index.
+  if (!sensors.getAddress(sondeNumero0, 0)) {
+#ifdef DEBUG
+   mySerial.println("Unable to find address for Device 0");
+#endif
+  } else {
+  // Sensibilty set at 0.0625°C
+    sensors.setResolution(sondeNumero0, 12);
+  }
+#endif
+
+#if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
+  if (!sensors.getAddress(sondeNumero1, 1)) {
+#ifdef DEBUG
+    mySerial.println("Unable to find address for Device 1");
+#endif
+  } else {
+  // Sensibilty set at 0.0625°C
+    sensors.setResolution(sondeNumero1, 12);
+  }
+#endif
+
+#if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
+  if (!sensors.getAddress(sondeNumero2, 2)) {
+#ifdef DEBUG
+   mySerial.println("Unable to find address for Device 2");
+#endif
+  } else {
+  // Sensibilty set at 0.0625°C
+    sensors.setResolution(sondeNumero2, 12);
+  }
+#endif
+
+#if (defined DS18B20_3 || defined DS18B20_4)
+  if (!sensors.getAddress(sondeNumero3, 3)) {
+#ifdef DEBUG
+    mySerial.println("Unable to find address for Device 3");
+#endif
+  } else {
+  // Sensibilty set at 0.0625°C
+    sensors.setResolution(sondeNumero3, 12);
+  }
+#endif
+
+#if (defined DS18B20_4)
+  if (!sensors.getAddress(sondeNumero4, 4)) {
+#ifdef DEBUG
+   mySerial.println("Unable to find address for Device 4");
+#endif
+  } else {
+  // Sensibilty set at 0.0625°C
+    sensors.setResolution(sondeNumero4, 12);
+  }
+#endif
+
 } // End of setup()
 
 
@@ -205,6 +329,16 @@ void setup()
 //  msgData [11] : 2nd byte of the index temperature from the DHT22
 //  msgData [12] : 1st byte of the weight from the weight sensor
 //  msgData [13] : 2nd byte of the weight from the weight sensor
+//  msgData [14] : 1st byte of the temperature from the DS18B20 0
+//  msgData [15] : 2nd byte of the temperature from the DS18B20 0
+//  msgData [16] : 1st byte of the temperature from the DS18B20 1
+//  msgData [17] : 2nd byte of the temperature from the DS18B20 1
+//  msgData [18] : 1st byte of the temperature from the DS18B20 2
+//  msgData [19] : 2nd byte of the temperature from the DS18B20 2
+//  msgData [20] : 1st byte of the temperature from the DS18B20 3
+//  msgData [21] : 2nd byte of the temperature from the DS18B20 3
+//  msgData [22] : 1st byte of the temperature from the DS18B20 4
+//  msgData [23] : 2nd byte of the temperature from the DS18B20 4
 // .....................................................................
 // msgRoof [0] : 2 = Alarm of switch open roof 
 // ---------------------------------------------------------------------
@@ -263,6 +397,36 @@ void loop()
     // Put weight in the msgData
     msgData[12] = (byte) (weight>>8);
     msgData[13] = (byte) weight;
+  
+#if (defined DS18B20_0 || defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
+    // Put temp0 in the msgData
+    msgData[14] = (byte) (temp0>>8);
+    msgData[15] = (byte) temp0;
+#endif
+  
+#if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
+    // Put temp1 in the msgData
+    msgData[16] = (byte) (temp1>>8);
+    msgData[17] = (byte) temp1;
+#endif
+  
+#if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
+    // Put temp2 in the msgData
+    msgData[18] = (byte) (temp2>>8);
+    msgData[19] = (byte) temp2;
+#endif
+  
+#if (defined DS18B20_3 || defined DS18B20_4)
+    // Put temp3 in the msgData
+    msgData[20] = (byte) (temp3>>8);
+    msgData[21] = (byte) temp3;
+#endif
+  
+#if (defined DS18B20_4)
+    // Put temp4 in the msgData
+    msgData[22] = (byte) (temp4>>8);
+    msgData[23] = (byte) temp4;
+#endif
   
 #ifdef DEBUG
     logDebugData();
@@ -334,6 +498,38 @@ void collectData() {
 
   // Weight sensor
   weight = scale.read_average(10);
+
+  // DS18B20
+  sensors.requestTemperatures();
+  // delay for conversion due to sensibility (i don't know where we should put this delay...)
+  delay(800);
+
+#if (defined DS18B20_0 || defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
+  temp0 = (sensors.getTempC(sondeNumero0)*100);
+  // delay for conversion due to sensibility (i don't know where we should put this delay...)
+  delay(800);
+#endif
+#if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
+  temp1 = (sensors.getTempC(sondeNumero1)*100);
+  // delay for conversion due to sensibility (i don't know where we should put this delay...)
+  delay(800);
+#endif
+#if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
+  temp2 = (sensors.getTempC(sondeNumero2)*100);
+  // delay for conversion due to sensibility (i don't know where we should put this delay...)
+  delay(800);
+#endif
+#if (defined DS18B20_3 || defined DS18B20_4)
+  temp3 = (sensors.getTempC(sondeNumero3)*100);
+  // delay for conversion due to sensibility (i don't know where we should put this delay...)
+  delay(800);
+#endif
+#if (defined DS18B20_4)
+  temp4 = (sensors.getTempC(sondeNumero4)*100);
+  // delay for conversion due to sensibility (i don't know where we should put this delay...)
+  delay(800);
+#endif
+
   
 } // End of collectData()
 
@@ -464,6 +660,51 @@ void logDebugData() {
   mySerial.print(msgData[12]); 
   mySerial.print(" "); 
   mySerial.println(msgData[13]);
+
+#if (defined DS18B20_0 || defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
+  mySerial.print("DS18B20 sensor - temp0: "); 
+  mySerial.print(temp0); 
+  mySerial.print(" - "); 
+  mySerial.print(msgData[14]); 
+  mySerial.print(" "); 
+  mySerial.println(msgData[15]);
+#endif
+
+#if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
+  mySerial.print("DS18B20 sensor - temp1: "); 
+  mySerial.print(temp1); 
+  mySerial.print(" - "); 
+  mySerial.print(msgData[16]); 
+  mySerial.print(" "); 
+  mySerial.println(msgData[17]);
+#endif
+
+#if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
+  mySerial.print("DS18B20 sensor - temp2: "); 
+  mySerial.print(temp2); 
+  mySerial.print(" - "); 
+  mySerial.print(msgData[18]); 
+  mySerial.print(" "); 
+  mySerial.println(msgData[19]);
+#endif
+
+#if (defined DS18B20_3 || defined DS18B20_4)
+  mySerial.print("DS18B20 sensor - temp3: "); 
+  mySerial.print(temp3); 
+  mySerial.print(" - "); 
+  mySerial.print(msgData[20]); 
+  mySerial.print(" "); 
+  mySerial.println(msgData[21]);
+#endif
+
+#if (defined DS18B20_4)
+  mySerial.print("DS18B20 sensor - temp4: "); 
+  mySerial.print(temp4); 
+  mySerial.print(" - "); 
+  mySerial.print(msgData[22]); 
+  mySerial.print(" "); 
+  mySerial.println(msgData[23]);
+#endif
 
 
 } // End of logDebugData()
