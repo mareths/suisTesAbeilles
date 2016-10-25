@@ -1,11 +1,11 @@
 // Comment for the real life !
-//#define DEBUG
+#define DEBUG // Deactive weight sensor in DEBUG mode
 // Uncomment number of sensor
-//#define DS18B20_0 // 1 DS18B20
-//#define DS18B20_1 // 2 DS18B20
-//#define DS18B20_2 // 3 DS18B20
-//#define DS18B20_3 // 4 DS18B20
-#define DS18B20_4 // 5 DS18B20
+//#define DS18B20_1 // 1 DS18B20
+//#define DS18B20_2 // 2 DS18B20
+#define DS18B20_3 // 3 DS18B20
+//#define DS18B20_4 // 4 DS18B20
+//#define DS18B20_5 // 5 DS18B20
 
 
 // ---------------------------------------------------------------------
@@ -89,40 +89,40 @@ OneWire oneWire(ONE_WIRE_BUS);
 // Pass our oneWire reference to Dallas Temperature. 
 DallasTemperature sensors(&oneWire);
 // Lenght of message to Objenious platform depends of number of DS18B20 sensors number
-#ifdef DS18B20_0
+#ifdef DS18B20_1
 byte msgData[16];           // Store the data to be uploaded to Objeniou's Network
 // arrays to hold device addresses
-DeviceAddress sondeNumero0;
-// global variable for temp0 and temp1
-int temp0;
-#endif
-#ifdef DS18B20_1
-byte msgData[18];           // Store the data to be uploaded to Objeniou's Network
-// arrays to hold device addresses
-DeviceAddress sondeNumero0, sondeNumero1;
-// global variable for temp0 and temp1
-int temp0, temp1;
+DeviceAddress sondeNumero1;
+// global variable for temperatureDS18B20_1 and temperatureDS18B20_2
+int temperatureDS18B20_1;
 #endif
 #ifdef DS18B20_2
-byte msgData[20];           // Store the data to be uploaded to Objeniou's Network
+byte msgData[18];           // Store the data to be uploaded to Objeniou's Network
 // arrays to hold device addresses
-DeviceAddress sondeNumero0, sondeNumero1, sondeNumero2;
-// global variable for temp0 and temp1
-int temp0, temp1, temp2;
+DeviceAddress sondeNumero1, sondeNumero2;
+// global variable for temperatureDS18B20_1 and temperatureDS18B20_2
+int temperatureDS18B20_1, temperatureDS18B20_2;
 #endif
 #ifdef DS18B20_3
-byte msgData[22];           // Store the data to be uploaded to Objeniou's Network
+byte msgData[20];           // Store the data to be uploaded to Objeniou's Network
 // arrays to hold device addresses
-DeviceAddress sondeNumero0, sondeNumero1, sondeNumero2, sondeNumero3;
-// global variable for temp0 and temp1
-int temp0, temp1, temp2, temp3;
+DeviceAddress sondeNumero1, sondeNumero2, sondeNumero3;
+// global variable for temperatureDS18B20_1 and temperatureDS18B20_2
+int temperatureDS18B20_1, temperatureDS18B20_2, temperatureDS18B20_3;
 #endif
 #ifdef DS18B20_4
+byte msgData[22];           // Store the data to be uploaded to Objeniou's Network
+// arrays to hold device addresses
+DeviceAddress sondeNumero1, sondeNumero2, sondeNumero3, sondeNumero4;
+// global variable for temperatureDS18B20_1 and temperatureDS18B20_2
+int temperatureDS18B20_1, temperatureDS18B20_2, temperatureDS18B20_3, temperatureDS18B20_4;
+#endif
+#ifdef DS18B20_5
 byte msgData[24];           // Store the data to be uploaded to Objeniou's Network
 // arrays to hold device addresses
-DeviceAddress sondeNumero0, sondeNumero1, sondeNumero2, sondeNumero3, sondeNumero4;
-// global variable for temp0 and temp1
-int temp0, temp1, temp2, temp3, temp4;
+DeviceAddress sondeNumero1, sondeNumero2, sondeNumero3, sondeNumero4, sondeNumero5;
+// global variable for temperatureDS18B20_1 and temperatureDS18B20_2
+int temperatureDS18B20_1, temperatureDS18B20_2, temperatureDS18B20_3, temperatureDS18B20_4, temperatureDS18B20_5;
 #endif
 
 //Instance of  the class Arm
@@ -209,10 +209,10 @@ void setup()
 // ---------------------------------------------------------------------
 
   // Build of the message to Objenious
-  msgRoof[0] = 2; // This byte will indicate to Objeniou's platform what kind
+  msgRoof[0] = 0; // This byte will indicate to Objeniou's platform what kind
                // of sketch we are using anf hence how to decode the data:
-               //   - 1 = SuisTesAbeilles data
-               //   - 2 = Switch open roof alarm
+               //   - 0 = Switch open roof alarm
+               //   - n = number of DS18B20 sensor with the collected data
 
 // ---------------------------------------------------------------------
 // BMP180 init
@@ -239,22 +239,43 @@ void setup()
 // ---------------------------------------------------------------------
   sensors.begin();
 
-#if (defined DS18B20_0 || defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
-    // search for devices on the bus and assign based on an index.
-  if (!sensors.getAddress(sondeNumero0, 0)) {
-#ifdef DEBUG
-   mySerial.println("Unable to find address for Device 0");
+// Set type of message, depending of number of DS18B20 sensor, for decrypt
+#ifdef DS18B20_1
+msgData[0] = 1; // This byte will indicate to Objeniou's platform what kind
+             // of sketch we are using anf hence how to decode the data:
+             //   - 0 = Switch open roof alarm
+             //   - n = number of DS18B20 sensor with the collected data
 #endif
-  } else {
-  // Sensibilty set at 0.0625°C
-    sensors.setResolution(sondeNumero0, 12);
-  }
+#ifdef DS18B20_2
+msgData[0] = 2; // This byte will indicate to Objeniou's platform what kind
+             // of sketch we are using anf hence how to decode the data:
+             //   - 0 = Switch open roof alarm
+             //   - n = number of DS18B20 sensor with the collected data
+#endif
+#ifdef DS18B20_3
+msgData[0] = 3; // This byte will indicate to Objeniou's platform what kind
+             // of sketch we are using anf hence how to decode the data:
+             //   - 0 = Switch open roof alarm
+             //   - n = number of DS18B20 sensor with the collected data
+#endif
+#ifdef DS18B20_4
+msgData[0] = 4; // This byte will indicate to Objeniou's platform what kind
+             // of sketch we are using anf hence how to decode the data:
+             //   - 0 = Switch open roof alarm
+             //   - n = number of DS18B20 sensor with the collected data
+#endif
+#ifdef DS18B20_5
+msgData[0] = 5; // This byte will indicate to Objeniou's platform what kind
+             // of sketch we are using anf hence how to decode the data:
+             //   - 0 = Switch open roof alarm
+             //   - n = number of DS18B20 sensor with the collected data
 #endif
 
-#if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
-  if (!sensors.getAddress(sondeNumero1, 1)) {
+#if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
+    // search for devices on the bus and assign based on an index.
+  if (!sensors.getAddress(sondeNumero1, 0)) {
 #ifdef DEBUG
-    mySerial.println("Unable to find address for Device 1");
+   mySerial.println("Unable to find address for Device 0");
 #endif
   } else {
   // Sensibilty set at 0.0625°C
@@ -262,10 +283,10 @@ void setup()
   }
 #endif
 
-#if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
-  if (!sensors.getAddress(sondeNumero2, 2)) {
+#if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
+  if (!sensors.getAddress(sondeNumero2, 1)) {
 #ifdef DEBUG
-   mySerial.println("Unable to find address for Device 2");
+    mySerial.println("Unable to find address for Device 1");
 #endif
   } else {
   // Sensibilty set at 0.0625°C
@@ -273,10 +294,10 @@ void setup()
   }
 #endif
 
-#if (defined DS18B20_3 || defined DS18B20_4)
-  if (!sensors.getAddress(sondeNumero3, 3)) {
+#if (defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
+  if (!sensors.getAddress(sondeNumero3, 2)) {
 #ifdef DEBUG
-    mySerial.println("Unable to find address for Device 3");
+   mySerial.println("Unable to find address for Device 2");
 #endif
   } else {
   // Sensibilty set at 0.0625°C
@@ -284,14 +305,25 @@ void setup()
   }
 #endif
 
-#if (defined DS18B20_4)
-  if (!sensors.getAddress(sondeNumero4, 4)) {
+#if (defined DS18B20_4 || defined DS18B20_5)
+  if (!sensors.getAddress(sondeNumero4, 3)) {
+#ifdef DEBUG
+    mySerial.println("Unable to find address for Device 3");
+#endif
+  } else {
+  // Sensibilty set at 0.0625°C
+    sensors.setResolution(sondeNumero4, 12);
+  }
+#endif
+
+#if (defined DS18B20_5)
+  if (!sensors.getAddress(sondeNumero5, 4)) {
 #ifdef DEBUG
    mySerial.println("Unable to find address for Device 4");
 #endif
   } else {
   // Sensibilty set at 0.0625°C
-    sensors.setResolution(sondeNumero4, 12);
+    sensors.setResolution(sondeNumero5, 12);
   }
 #endif
 
@@ -315,7 +347,7 @@ void setup()
 // ---------------------------------------------------------------------
 // Mapping of the message:
 // .....................................................................
-// msgData [0] : 1 = SuisTesAbeilles data
+// msgData [0] : 1 to 5 = SuisTesAbeilles data depending number of DS18B20
 //  msgData [1] : 1st byte of temperature from the BMP180
 //  msgData [2] : 2nd byte of temperature from the BMP180
 //  msgData [3] : 1st byte of pression from the BMP180
@@ -329,18 +361,18 @@ void setup()
 //  msgData [11] : 2nd byte of the index temperature from the DHT22
 //  msgData [12] : 1st byte of the weight from the weight sensor
 //  msgData [13] : 2nd byte of the weight from the weight sensor
-//  msgData [14] : 1st byte of the temperature from the DS18B20 0
-//  msgData [15] : 2nd byte of the temperature from the DS18B20 0
-//  msgData [16] : 1st byte of the temperature from the DS18B20 1
-//  msgData [17] : 2nd byte of the temperature from the DS18B20 1
-//  msgData [18] : 1st byte of the temperature from the DS18B20 2
-//  msgData [19] : 2nd byte of the temperature from the DS18B20 2
-//  msgData [20] : 1st byte of the temperature from the DS18B20 3
-//  msgData [21] : 2nd byte of the temperature from the DS18B20 3
-//  msgData [22] : 1st byte of the temperature from the DS18B20 4
-//  msgData [23] : 2nd byte of the temperature from the DS18B20 4
+//  msgData [14] : 1st byte of the temperature from the DS18B20 1
+//  msgData [15] : 2nd byte of the temperature from the DS18B20 1
+//  msgData [16] : 1st byte of the temperature from the DS18B20 2
+//  msgData [17] : 2nd byte of the temperature from the DS18B20 2
+//  msgData [18] : 1st byte of the temperature from the DS18B20 3
+//  msgData [19] : 2nd byte of the temperature from the DS18B20 3
+//  msgData [20] : 1st byte of the temperature from the DS18B20 4
+//  msgData [21] : 2nd byte of the temperature from the DS18B20 4
+//  msgData [22] : 1st byte of the temperature from the DS18B20 5
+//  msgData [23] : 2nd byte of the temperature from the DS18B20 5
 // .....................................................................
-// msgRoof [0] : 2 = Alarm of switch open roof 
+// msgRoof [0] : 0 = Alarm of switch open roof 
 // ---------------------------------------------------------------------
 
 void loop()
@@ -398,34 +430,34 @@ void loop()
     msgData[12] = (byte) (weight>>8);
     msgData[13] = (byte) weight;
   
-#if (defined DS18B20_0 || defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
-    // Put temp0 in the msgData
-    msgData[14] = (byte) (temp0>>8);
-    msgData[15] = (byte) temp0;
+#if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
+    // Put temperatureDS18B20_1 in the msgData
+    msgData[14] = (byte) (temperatureDS18B20_1>>8);
+    msgData[15] = (byte) temperatureDS18B20_1;
 #endif
   
-#if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
-    // Put temp1 in the msgData
-    msgData[16] = (byte) (temp1>>8);
-    msgData[17] = (byte) temp1;
+#if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
+    // Put temperatureDS18B20_2 in the msgData
+    msgData[16] = (byte) (temperatureDS18B20_2>>8);
+    msgData[17] = (byte) temperatureDS18B20_2;
 #endif
   
-#if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
-    // Put temp2 in the msgData
-    msgData[18] = (byte) (temp2>>8);
-    msgData[19] = (byte) temp2;
+#if (defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
+    // Put temperatureDS18B20_3 in the msgData
+    msgData[18] = (byte) (temperatureDS18B20_3>>8);
+    msgData[19] = (byte) temperatureDS18B20_3;
 #endif
   
-#if (defined DS18B20_3 || defined DS18B20_4)
-    // Put temp3 in the msgData
-    msgData[20] = (byte) (temp3>>8);
-    msgData[21] = (byte) temp3;
+#if (defined DS18B20_4 || defined DS18B20_5)
+    // Put temperatureDS18B20_4 in the msgData
+    msgData[20] = (byte) (temperatureDS18B20_4>>8);
+    msgData[21] = (byte) temperatureDS18B20_4;
 #endif
   
-#if (defined DS18B20_4)
-    // Put temp4 in the msgData
-    msgData[22] = (byte) (temp4>>8);
-    msgData[23] = (byte) temp4;
+#if (defined DS18B20_5)
+    // Put temperatureDS18B20_5 in the msgData
+    msgData[22] = (byte) (temperatureDS18B20_5>>8);
+    msgData[23] = (byte) temperatureDS18B20_5;
 #endif
   
 #ifdef DEBUG
@@ -494,7 +526,7 @@ void collectData() {
   }
 
   indexTemperatureDHT22 = (dht.computeHeatIndex(temperatureDHT22, humidityDHT22, false)*100); // calcul the index
-                                               // of temperature in Celsius, multiple by 100 to have an integer value
+                                            // of temperature in Celsius, multiple by 100 to have an integer value
 
   // Weight sensor
   weight = scale.read_average(10);
@@ -504,28 +536,28 @@ void collectData() {
   // delay for conversion due to sensibility (i don't know where we should put this delay...)
   delay(800);
 
-#if (defined DS18B20_0 || defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
-  temp0 = (sensors.getTempC(sondeNumero0)*100);
+#if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
+  temperatureDS18B20_1 = (sensors.getTempC(sondeNumero1)*100);
   // delay for conversion due to sensibility (i don't know where we should put this delay...)
   delay(800);
 #endif
-#if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
-  temp1 = (sensors.getTempC(sondeNumero1)*100);
+#if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
+  temperatureDS18B20_2 = (sensors.getTempC(sondeNumero2)*100);
   // delay for conversion due to sensibility (i don't know where we should put this delay...)
   delay(800);
 #endif
-#if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
-  temp2 = (sensors.getTempC(sondeNumero2)*100);
+#if (defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
+  temperatureDS18B20_3 = (sensors.getTempC(sondeNumero3)*100);
   // delay for conversion due to sensibility (i don't know where we should put this delay...)
   delay(800);
 #endif
-#if (defined DS18B20_3 || defined DS18B20_4)
-  temp3 = (sensors.getTempC(sondeNumero3)*100);
+#if (defined DS18B20_4 || defined DS18B20_5)
+  temperatureDS18B20_4 = (sensors.getTempC(sondeNumero4)*100);
   // delay for conversion due to sensibility (i don't know where we should put this delay...)
   delay(800);
 #endif
-#if (defined DS18B20_4)
-  temp4 = (sensors.getTempC(sondeNumero4)*100);
+#if (defined DS18B20_5)
+  temperatureDS18B20_5 = (sensors.getTempC(sondeNumero5)*100);
   // delay for conversion due to sensibility (i don't know where we should put this delay...)
   delay(800);
 #endif
@@ -661,45 +693,45 @@ void logDebugData() {
   mySerial.print(" "); 
   mySerial.println(msgData[13]);
 
-#if (defined DS18B20_0 || defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
-  mySerial.print("DS18B20 sensor - temp0: "); 
-  mySerial.print(temp0); 
+#if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
+  mySerial.print("DS18B20 sensor - temperatureDS18B20_1: "); 
+  mySerial.print(temperatureDS18B20_1); 
   mySerial.print(" - "); 
   mySerial.print(msgData[14]); 
   mySerial.print(" "); 
   mySerial.println(msgData[15]);
 #endif
 
-#if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
-  mySerial.print("DS18B20 sensor - temp1: "); 
-  mySerial.print(temp1); 
+#if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
+  mySerial.print("DS18B20 sensor - temperatureDS18B20_2: "); 
+  mySerial.print(temperatureDS18B20_2); 
   mySerial.print(" - "); 
   mySerial.print(msgData[16]); 
   mySerial.print(" "); 
   mySerial.println(msgData[17]);
 #endif
 
-#if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4)
-  mySerial.print("DS18B20 sensor - temp2: "); 
-  mySerial.print(temp2); 
+#if (defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
+  mySerial.print("DS18B20 sensor - temperatureDS18B20_3: "); 
+  mySerial.print(temperatureDS18B20_3); 
   mySerial.print(" - "); 
   mySerial.print(msgData[18]); 
   mySerial.print(" "); 
   mySerial.println(msgData[19]);
 #endif
 
-#if (defined DS18B20_3 || defined DS18B20_4)
-  mySerial.print("DS18B20 sensor - temp3: "); 
-  mySerial.print(temp3); 
+#if (defined DS18B20_4 || defined DS18B20_5)
+  mySerial.print("DS18B20 sensor - temperatureDS18B20_4: "); 
+  mySerial.print(temperatureDS18B20_4); 
   mySerial.print(" - "); 
   mySerial.print(msgData[20]); 
   mySerial.print(" "); 
   mySerial.println(msgData[21]);
 #endif
 
-#if (defined DS18B20_4)
-  mySerial.print("DS18B20 sensor - temp4: "); 
-  mySerial.print(temp4); 
+#if (defined DS18B20_5)
+  mySerial.print("DS18B20 sensor - temperatureDS18B20_5: "); 
+  mySerial.print(temperatureDS18B20_5); 
   mySerial.print(" - "); 
   mySerial.print(msgData[22]); 
   mySerial.print(" "); 
