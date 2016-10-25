@@ -1,5 +1,7 @@
-// Comment for the real life !
-#define DEBUG // Deactive weight sensor in DEBUG mode
+// DEBUG OR WEIGHT: Only one should be commented
+#define DEBUG  // If WEIGHT uncommented, comment DEBUG mode
+//#define WEIGHT // If DEBUG uncommented, comment WEIGHT mode
+
 // Uncomment number of sensor
 //#define DS18B20_1 // 1 DS18B20
 //#define DS18B20_2 // 2 DS18B20
@@ -47,19 +49,19 @@ const byte interruptPin = 3; // only one interrupt pin on the airboard
 #define DHTTYPE DHT22 // DHT 22 (AM2302)
 DHT dht(DHTPIN, DHTTYPE);//déclaration du capteur
 
-// Weight sensor
-// OUT          - pin 11
-// Clock (SDK)  - pin 10
-HX711 scale(11, 10);
-
 // Data wire is plugged into port 2 on the Arduino
 #define ONE_WIRE_BUS 12
 
 // No Weight sensor in DEBUG mode
-#ifdef DEBUG
+#if (defined DEBUG && !defined WEIGHT)
 // We define the pins for the software Serial that will allows us to
 // debug our code.
   SoftwareSerial mySerial(10, 11); // Pin 10 will work as RX and Pin 11 as TX
+#else
+// Weight sensor
+// OUT          - pin 11
+// Clock (SDK)  - pin 10
+HX711 scale(11, 10);
 #endif
 
 // ---------------------------------------------------------------------
@@ -231,8 +233,10 @@ void setup()
 // Weight sensor init
 // ---------------------------------------------------------------------
 
+#if (!defined DEBUG && defined WEIGHT)
   scale.set_scale(-24000.f);
   scale.tare();
+#endif
 
 // ---------------------------------------------------------------------
 // DS18B20 sensor init
@@ -426,9 +430,14 @@ void loop()
     msgData[10] = (byte) (indexTemperatureDHT22>>8);
     msgData[11] = (byte) indexTemperatureDHT22;
   
+#if (!defined DEBUG && defined WEIGHT)
     // Put weight in the msgData
     msgData[12] = (byte) (weight>>8);
     msgData[13] = (byte) weight;
+#else
+    msgData[12] = (byte) 0;
+    msgData[13] = (byte) 0;
+#endif
   
 #if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
     // Put temperatureDS18B20_1 in the msgData
@@ -528,8 +537,10 @@ void collectData() {
   indexTemperatureDHT22 = (dht.computeHeatIndex(temperatureDHT22, humidityDHT22, false)*100); // calcul the index
                                             // of temperature in Celsius, multiple by 100 to have an integer value
 
+#if (!defined DEBUG && defined WEIGHT)
   // Weight sensor
   weight = scale.read_average(10);
+#endif
 
   // DS18B20
   sensors.requestTemperatures();
@@ -582,8 +593,10 @@ void sleepNow() {
   set_sleep_mode(SLEEP_MODE_IDLE);   // MODE_IDLE to be wake up by timer1
   sleep_enable();          // enables the sleep bit in the mcucr register
 
+#if (!defined DEBUG && defined WEIGHT)
   /* Weight sensor shutdown */
   scale.power_down();
+#endif
 
   /* Disable all of the unused peripherals. This will reduce power
    * consumption further and, more importantly, some of these
@@ -604,8 +617,10 @@ void sleepNow() {
   /* Re-enable the peripherals. */
   power_all_enable();
 
+#if (!defined DEBUG && defined WEIGHT)
   /* Wake up weight sensor */
   scale.power_up();
+#endif
 
 } // End of sleepNow()
 
