@@ -71,7 +71,7 @@ byte msgRoof[1];         // Message wich be send then roof is open
 
 ////////////////////
 // BMP180
-int pressureBMP180;
+long int pressureBMP180;
 int temperatureBMP180;
 
 ////////////////////
@@ -222,7 +222,8 @@ void setup()
 
     Wire.begin();
     bmp180.calibration();
-
+    // Ajout d un delais pour test
+    delay(10000);
 // ---------------------------------------------------------------------
 // DHT22 init
 // ---------------------------------------------------------------------
