@@ -1,14 +1,18 @@
 // DEBUG OR WEIGHT: Only one should be commented
-#define DEBUG  // If WEIGHT uncommented, comment DEBUG mode
-//#define WEIGHT // If DEBUG uncommented, comment WEIGHT mode
+// #define DEBUG  // If WEIGHT uncommented, comment DEBUG mode
+#define WEIGHT // If DEBUG uncommented, comment WEIGHT mode
 
 // Uncomment number of sensor
 //#define DS18B20_1 // 1 DS18B20
-//#define DS18B20_2 // 2 DS18B20
-#define DS18B20_3 // 3 DS18B20
+#define DS18B20_2 // 2 DS18B20
+//#define DS18B20_3 // 3 DS18B20
 //#define DS18B20_4 // 4 DS18B20
 //#define DS18B20_5 // 5 DS18B20
 
+// The 3 colours LED on the Airboard is driven by 3 different digital pins:
+// PIN 5 is Green colour, PIN 9 is Red colour, PIN 6 is Blue color
+#define LED_OK 5 
+#define LED_ERROR 9
 
 // ---------------------------------------------------------------------
 // Include
@@ -23,7 +27,10 @@
 #include <Bmp180.h> // for barometric sensor
 #include <avr/sleep.h> // for idle mode
 #include <avr/power.h> // for idle mode
-// Ajouter la librairie via Croquis/Inclure une librairie/Gerer les bibliothéques, et chercher dht22
+/* Ajouter la librairie via Croquis/Inclure une librairie/Gerer les bibliothéques, et chercher dht22
+Si on utilise la version 1.3.x de la lib dht, il faut la lib commune :
+https://github.com/adafruit/Adafruit_Sensor télécharger le projet en ZIP et
+intégrer via Croquis/Inclure une librairie/Ajouter la bilbiotheque .ZIP*/
 #include "DHT.h" // for DHT22
 // Ajouter la librairie HX711 dans le repertoire lib
 #include "HX711.h" // for weight sensor
@@ -70,6 +77,10 @@ HX711 scale(11, 10);
 byte msgRoof[1];         // Message wich be send then roof is open 
 
 ////////////////////
+// Battery level
+long battery_level;
+
+////////////////////
 // BMP180
 long int pressureBMP180;
 int temperatureBMP180;
@@ -92,35 +103,35 @@ OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 // Lenght of message to Objenious platform depends of number of DS18B20 sensors number
 #ifdef DS18B20_1
-byte msgData[16];           // Store the data to be uploaded to Objeniou's Network
+byte msgData[18];           // Store the data to be uploaded to Objeniou's Network
 // arrays to hold device addresses
 DeviceAddress sondeNumero1;
 // global variable for temperatureDS18B20_1 and temperatureDS18B20_2
 int temperatureDS18B20_1;
 #endif
 #ifdef DS18B20_2
-byte msgData[18];           // Store the data to be uploaded to Objeniou's Network
+byte msgData[20];           // Store the data to be uploaded to Objeniou's Network
 // arrays to hold device addresses
 DeviceAddress sondeNumero1, sondeNumero2;
 // global variable for temperatureDS18B20_1 and temperatureDS18B20_2
 int temperatureDS18B20_1, temperatureDS18B20_2;
 #endif
 #ifdef DS18B20_3
-byte msgData[20];           // Store the data to be uploaded to Objeniou's Network
+byte msgData[22];           // Store the data to be uploaded to Objeniou's Network
 // arrays to hold device addresses
 DeviceAddress sondeNumero1, sondeNumero2, sondeNumero3;
 // global variable for temperatureDS18B20_1 and temperatureDS18B20_2
 int temperatureDS18B20_1, temperatureDS18B20_2, temperatureDS18B20_3;
 #endif
 #ifdef DS18B20_4
-byte msgData[22];           // Store the data to be uploaded to Objeniou's Network
+byte msgData[24];           // Store the data to be uploaded to Objeniou's Network
 // arrays to hold device addresses
 DeviceAddress sondeNumero1, sondeNumero2, sondeNumero3, sondeNumero4;
 // global variable for temperatureDS18B20_1 and temperatureDS18B20_2
 int temperatureDS18B20_1, temperatureDS18B20_2, temperatureDS18B20_3, temperatureDS18B20_4;
 #endif
 #ifdef DS18B20_5
-byte msgData[24];           // Store the data to be uploaded to Objeniou's Network
+byte msgData[26];           // Store the data to be uploaded to Objeniou's Network
 // arrays to hold device addresses
 DeviceAddress sondeNumero1, sondeNumero2, sondeNumero3, sondeNumero4, sondeNumero5;
 // global variable for temperatureDS18B20_1 and temperatureDS18B20_2
@@ -142,6 +153,14 @@ void setup()
     // If you see the message on your serial monitor it is working!
 #endif
 
+ // We have to configure the digital pins as output in order to use the LED
+    pinMode(LED_ERROR, OUTPUT); // RED color 
+    pinMode(LED_OK, OUTPUT); // GREEN color 
+
+// Then we ensure the LEDs are OFF
+    digitalWrite(LED_ERROR, LOW);
+    digitalWrite(LED_OK, LOW);
+
 // ---------------------------------------------------------------------
 // LoRaWAN module Init and configuration
 // ---------------------------------------------------------------------
@@ -150,13 +169,21 @@ void setup()
     /* Init of the LoRaWAN module */
     if(Objenious.Init(&Serial) != ARM_ERR_NONE)
     {
+      digitalWrite(LED_ERROR, HIGH);
+      delay(1000);
+      digitalWrite(LED_ERROR, LOW);
 #ifdef DEBUG
         mySerial.println("Network Error"); // Debug
+#endif
     }
     else
     {
+#ifdef DEBUG
         mySerial.println("Connected to Objenious"); // Debug
 #endif
+      digitalWrite(LED_OK, HIGH);
+      delay(1000);
+      digitalWrite(LED_OK, LOW);
     }
 
     /* Configuration of the LoRaWAN module */
@@ -172,7 +199,8 @@ void setup()
     Objenious.UpdateConfig();
     
     delay(8000); // delay needed for the module to connect to Objenious
-
+    
+    
 // ---------------------------------------------------------------------
 // Configure the timer
 // ---------------------------------------------------------------------
@@ -197,14 +225,6 @@ void setup()
     /* Enable the timer overlow interrupt. */
     TIMSK1=0x01;
 
-// ---------------------------------------------------------------------
-// Configure the interruption for switch open roof sensor
-// ---------------------------------------------------------------------
-
-    pinMode(interruptPin, INPUT_PULLUP);
-    /* Configure sensor to interrupt program or idle mode only when somebody open the roof */
-    attachInterrupt(digitalPinToInterrupt(interruptPin), switchCapteurOuverture, RISING);
-    delay(100);
 
 // ---------------------------------------------------------------------
 // Build the message wich be send then roof is open
@@ -222,8 +242,7 @@ void setup()
 
     Wire.begin();
     bmp180.calibration();
-    // Ajout d un delais pour test
-    delay(10000);
+
 // ---------------------------------------------------------------------
 // DHT22 init
 // ---------------------------------------------------------------------
@@ -332,6 +351,19 @@ msgData[0] = 5; // This byte will indicate to Objeniou's platform what kind
   }
 #endif
 
+// ---------------------------------------------------------------------
+// Configure the interruption for switch open roof sensor
+// ---------------------------------------------------------------------
+
+    pinMode(interruptPin, INPUT_PULLUP);
+    /* Configure sensor to interrupt program or idle mode only when somebody open the roof */
+    attachInterrupt(digitalPinToInterrupt(interruptPin), switchCapteurOuverture, RISING);
+    delay(100);
+    
+digitalWrite(LED_OK, HIGH);
+delay(1000);
+digitalWrite(LED_OK, LOW);
+
 } // End of setup()
 
 
@@ -382,6 +414,8 @@ msgData[0] = 5; // This byte will indicate to Objeniou's platform what kind
 
 void loop()
 {
+
+
 #ifdef DEBUG
   mySerial.println("Go to sleep");
 #endif
@@ -390,7 +424,7 @@ void loop()
   sleepNow();     // Pass to idle mode for 4s
 
   // 15 timer1 cycle to have one minute
-  if (timer1 > 15*nbMinuteTimeout) {
+  if (timer1 > 3*nbMinuteTimeout) {
 #ifdef DEBUG
     mySerial.println("Wake up !");
 #endif
@@ -405,69 +439,73 @@ void loop()
     mySerial.println("Building msgData...");
 #endif
     // Build of the message to Objenious
-    msgData[0] = 1; // This byte will indicate to Objeniou's platform what kind
+ //   msgData[0] = 1; // This byte will indicate to Objeniou's platform what kind
                  // of sketch we are using anf hence how to decode the data:
                  //   - 1 = SuisTesAbeilles data
                  //   - 2 = Switch open roof alarm
+    
+    // Put the battery level in the msgData
+    msgData[1] = (byte) (battery_level>>8);
+    msgData[2] = (byte) battery_level;
   
     // Put BMP180 temperature in the msgData
-    msgData[1] = (byte) (temperatureBMP180>>8);
-    msgData[2] = (byte) temperatureBMP180;
+    msgData[3] = (byte) (temperatureBMP180>>8);
+    msgData[4] = (byte) temperatureBMP180;
   
     // Put BMP180 temperature in the msgData
-    msgData[3] = (byte) (pressureBMP180>>16);
-    msgData[4] = (byte) (pressureBMP180>>8);
-    msgData[5] = (byte) pressureBMP180;
+    msgData[5] = (byte) (pressureBMP180>>16);
+    msgData[6] = (byte) (pressureBMP180>>8);
+    msgData[7] = (byte) pressureBMP180;
   
     // Put DHT22 humidity in the msgData
-    msgData[6] = (byte) (humidityDHT22>>8);
-    msgData[7] = (byte) humidityDHT22;
+    msgData[8] = (byte) (humidityDHT22>>8);
+    msgData[9] = (byte) humidityDHT22;
   
     // Put DHT22 temperature in the msgData
-    msgData[8] = (byte) (temperatureDHT22>>8);
-    msgData[9] = (byte) temperatureDHT22;
+    msgData[10] = (byte) (temperatureDHT22>>8);
+    msgData[11] = (byte) temperatureDHT22;
   
     // Put DHT22 index of temperature in the msgData
-    msgData[10] = (byte) (indexTemperatureDHT22>>8);
-    msgData[11] = (byte) indexTemperatureDHT22;
+    msgData[12] = (byte) (indexTemperatureDHT22>>8);
+    msgData[13] = (byte) indexTemperatureDHT22;
   
 #if (!defined DEBUG && defined WEIGHT)
     // Put weight in the msgData
-    msgData[12] = (byte) (weight>>8);
-    msgData[13] = (byte) weight;
+    msgData[14] = (byte) (weight>>8);
+    msgData[15] = (byte) weight;
 #else
-    msgData[12] = (byte) 0;
-    msgData[13] = (byte) 0;
+    msgData[14] = (byte) 0;
+    msgData[15] = (byte) 0;
 #endif
   
 #if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
     // Put temperatureDS18B20_1 in the msgData
-    msgData[14] = (byte) (temperatureDS18B20_1>>8);
-    msgData[15] = (byte) temperatureDS18B20_1;
+    msgData[16] = (byte) (temperatureDS18B20_1>>8);
+    msgData[17] = (byte) temperatureDS18B20_1;
 #endif
   
 #if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
     // Put temperatureDS18B20_2 in the msgData
-    msgData[16] = (byte) (temperatureDS18B20_2>>8);
-    msgData[17] = (byte) temperatureDS18B20_2;
+    msgData[18] = (byte) (temperatureDS18B20_2>>8);
+    msgData[19] = (byte) temperatureDS18B20_2;
 #endif
   
 #if (defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
     // Put temperatureDS18B20_3 in the msgData
-    msgData[18] = (byte) (temperatureDS18B20_3>>8);
-    msgData[19] = (byte) temperatureDS18B20_3;
+    msgData[20] = (byte) (temperatureDS18B20_3>>8);
+    msgData[21] = (byte) temperatureDS18B20_3;
 #endif
   
 #if (defined DS18B20_4 || defined DS18B20_5)
     // Put temperatureDS18B20_4 in the msgData
-    msgData[20] = (byte) (temperatureDS18B20_4>>8);
-    msgData[21] = (byte) temperatureDS18B20_4;
+    msgData[22] = (byte) (temperatureDS18B20_4>>8);
+    msgData[23] = (byte) temperatureDS18B20_4;
 #endif
   
 #if (defined DS18B20_5)
     // Put temperatureDS18B20_5 in the msgData
-    msgData[22] = (byte) (temperatureDS18B20_5>>8);
-    msgData[23] = (byte) temperatureDS18B20_5;
+    msgData[24] = (byte) (temperatureDS18B20_5>>8);
+    msgData[25] = (byte) temperatureDS18B20_5;
 #endif
   
 #ifdef DEBUG
@@ -516,6 +554,9 @@ ISR(TIMER1_OVF_vect)
  *
  ***************************************************/
 void collectData() {
+  //battery_level
+  battery_level=readVcc(); // collect the battery level
+                                  // multiple by 1000 to have an integer value
   // BMP180
   temperatureBMP180 = (bmp180.getTemperature(bmp180.readUT())*100); // collect the temperature in Celsius,
                                                                     // multiple by 100 to have an integer value
@@ -540,7 +581,7 @@ void collectData() {
 
 #if (!defined DEBUG && defined WEIGHT)
   // Weight sensor
-  weight = scale.read_average(10);
+  weight = scale.get_units(10)*10;
 #endif
 
   // DS18B20
@@ -632,13 +673,19 @@ void sleepNow() {
  *
  *  Parameters:  None.
  *
- *  Description: Send a alarm msg to Objenious plateform with id = 2
+ *  Description: Send a alarm msg to Objenious plateform with id = 0
  *
  ***************************************************/
 void switchCapteurOuverture() {
   sleep_disable();         // first thing after waking from sleep: disable sleep...
   /* Re-enable the peripherals. */
   power_all_enable();
+
+#if (!defined DEBUG && defined WEIGHT)
+  /* Wake up weight sensor */
+  scale.power_up();
+#endif
+
   detachInterrupt(digitalPinToInterrupt(interruptPin));
 #ifdef DEBUG
   mySerial.println("Roof is open !");
@@ -665,97 +712,134 @@ void switchCapteurOuverture() {
  *
  ***************************************************/
 void logDebugData() {
-  mySerial.print("BMP180 - Temperature: "); 
-  mySerial.print(temperatureBMP180); 
+  
+  mySerial.print("Id: "); 
+  mySerial.println(msgData[0]); 
+  
+  mySerial.print("Battery Level - Voltage batterie: "); 
+  mySerial.print(battery_level); 
   mySerial.print(" - "); 
   mySerial.print(msgData[1]); 
   mySerial.print(" "); 
   mySerial.println(msgData[2]); 
+  
+  mySerial.print("BMP180 - Temperature: "); 
+  mySerial.print(temperatureBMP180); 
+  mySerial.print(" - "); 
+  mySerial.print(msgData[3]); 
+  mySerial.print(" "); 
+  mySerial.println(msgData[4]); 
 
   mySerial.print("BMP180 - Pressure: "); 
   mySerial.print(pressureBMP180); 
   mySerial.print(" - "); 
-  mySerial.print(msgData[3]); 
+  mySerial.print(msgData[5]); 
   mySerial.print(" "); 
-  mySerial.print(msgData[4]); 
-  mySerial.print(" "); 
-  mySerial.println(msgData[5]); 
-
-  mySerial.print("DHT22 - Humidity: "); 
-  mySerial.print(humidityDHT22); 
-  mySerial.print(" - "); 
   mySerial.print(msgData[6]); 
   mySerial.print(" "); 
   mySerial.println(msgData[7]); 
 
-  mySerial.print("DHT22 - Temperature: "); 
-  mySerial.print(temperatureDHT22); 
+  mySerial.print("DHT22 - Humidity: "); 
+  mySerial.print(humidityDHT22); 
   mySerial.print(" - "); 
   mySerial.print(msgData[8]); 
   mySerial.print(" "); 
-  mySerial.println(msgData[9]);
+  mySerial.println(msgData[9]); 
 
-  mySerial.print("DHT22 - Index of Temperature: "); 
-  mySerial.print(indexTemperatureDHT22); 
+  mySerial.print("DHT22 - Temperature: "); 
+  mySerial.print(temperatureDHT22); 
   mySerial.print(" - "); 
   mySerial.print(msgData[10]); 
   mySerial.print(" "); 
   mySerial.println(msgData[11]);
 
-  mySerial.print("Weight sensor - Weight: "); 
-  mySerial.print(weight); 
+  mySerial.print("DHT22 - Index of Temperature: "); 
+  mySerial.print(indexTemperatureDHT22); 
   mySerial.print(" - "); 
   mySerial.print(msgData[12]); 
   mySerial.print(" "); 
   mySerial.println(msgData[13]);
 
-#if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
-  mySerial.print("DS18B20 sensor - temperatureDS18B20_1: "); 
-  mySerial.print(temperatureDS18B20_1); 
+  mySerial.print("Weight sensor - Weight: "); 
+  mySerial.print(weight); 
   mySerial.print(" - "); 
   mySerial.print(msgData[14]); 
   mySerial.print(" "); 
   mySerial.println(msgData[15]);
-#endif
 
-#if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
-  mySerial.print("DS18B20 sensor - temperatureDS18B20_2: "); 
-  mySerial.print(temperatureDS18B20_2); 
+#if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
+  mySerial.print("DS18B20 sensor - temperatureDS18B20_1: "); 
+  mySerial.print(temperatureDS18B20_1); 
   mySerial.print(" - "); 
   mySerial.print(msgData[16]); 
   mySerial.print(" "); 
   mySerial.println(msgData[17]);
 #endif
 
-#if (defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
-  mySerial.print("DS18B20 sensor - temperatureDS18B20_3: "); 
-  mySerial.print(temperatureDS18B20_3); 
+#if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
+  mySerial.print("DS18B20 sensor - temperatureDS18B20_2: "); 
+  mySerial.print(temperatureDS18B20_2); 
   mySerial.print(" - "); 
   mySerial.print(msgData[18]); 
   mySerial.print(" "); 
   mySerial.println(msgData[19]);
 #endif
 
-#if (defined DS18B20_4 || defined DS18B20_5)
-  mySerial.print("DS18B20 sensor - temperatureDS18B20_4: "); 
-  mySerial.print(temperatureDS18B20_4); 
+#if (defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
+  mySerial.print("DS18B20 sensor - temperatureDS18B20_3: "); 
+  mySerial.print(temperatureDS18B20_3); 
   mySerial.print(" - "); 
   mySerial.print(msgData[20]); 
   mySerial.print(" "); 
   mySerial.println(msgData[21]);
 #endif
 
-#if (defined DS18B20_5)
-  mySerial.print("DS18B20 sensor - temperatureDS18B20_5: "); 
-  mySerial.print(temperatureDS18B20_5); 
+#if (defined DS18B20_4 || defined DS18B20_5)
+  mySerial.print("DS18B20 sensor - temperatureDS18B20_4: "); 
+  mySerial.print(temperatureDS18B20_4); 
   mySerial.print(" - "); 
   mySerial.print(msgData[22]); 
   mySerial.print(" "); 
   mySerial.println(msgData[23]);
 #endif
 
+#if (defined DS18B20_5)
+  mySerial.print("DS18B20 sensor - temperatureDS18B20_5: "); 
+  mySerial.print(temperatureDS18B20_5); 
+  mySerial.print(" - "); 
+  mySerial.print(msgData[24]); 
+  mySerial.print(" "); 
+  mySerial.println(msgData[25]);
+#endif
+
 
 } // End of logDebugData()
 #endif
 
+
+long readVcc() {
+  // Read 1.1V reference against AVcc
+  // set the reference to Vcc and the measurement to the internal 1.1V reference
+  #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+    ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+  #elif defined (__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
+    ADMUX = _BV(MUX5) | _BV(MUX0);
+  #elif defined (__AVR_ATtiny25__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)
+    ADMUX = _BV(MUX3) | _BV(MUX2);
+  #else
+    ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+  #endif  
+
+  delay(2); // Wait for Vref to settle
+  ADCSRA |= _BV(ADSC); // Start conversion
+  while (bit_is_set(ADCSRA,ADSC)); // measuring
+
+  uint8_t low  = ADCL; // must read ADCL first - it then locks ADCH  
+  uint8_t high = ADCH; // unlocks both
+
+  long result = (high<<8) | low;
+
+  result = 1125300L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
+  return result; // Vcc in millivolts
+}
 
