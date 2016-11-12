@@ -1,0 +1,31 @@
+{
+	"defaults" : {
+		"endianness" : "little"
+	},
+	"attributes" : {
+		"id" : {
+			"type" : "int",
+			"hidden" : true,
+			"length" : 8
+		},
+		"temperature" : {
+			"type" : "int",
+			"length" : 16,
+			"divide" : 100
+		},
+		"pression" : {
+			"type" : "int",
+			"length" : 24
+		}
+	},
+	"format" : [{
+			"attributes" : ["id"]
+		}, {
+			"if" : "id == 7",
+			"then" : [{
+					"attributes" : ["temperature", "pression"]
+				}
+			]
+		}
+	]
+}

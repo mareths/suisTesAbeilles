@@ -1,0 +1,79 @@
+{
+	"defaults" : {
+		"endianness" : "little"
+	},
+	"attributes" : {
+		"id" : {
+			"type" : "int",
+			"length" : 8
+		},
+		"battery_level" : {
+			"type" : "int",
+			"length" : 16,
+			"divide" : 1000
+		},
+		"bpm180_temperature" : {
+			"type" : "int",
+			"length" : 16,
+			"divide" : 100
+		},
+		"bpm180_pression" : {
+			"type" : "int",
+			"length" : 24,
+			"divide" : 100
+		},
+		"dht22_humidite" : {
+			"type" : "int",
+			"length" : 16,
+			"divide" : 100
+		},
+		"dht22_temperature" : {
+			"type" : "int",
+			"length" : 16,
+			"divide" : 100
+		},
+		"dht22_idx_temperature" : {
+			"type" : "int",
+			"length" : 16,
+			"divide" : 100
+		},
+		"poids" : {
+			"type" : "int",
+			"length" : 16,
+			"divide" : 10
+		},
+		"ds18b20_1_temperature" : {
+			"type" : "int",
+			"length" : 16,
+			"divide" : 100
+		},
+		"ds18b20_2_temperature" : {
+			"type" : "int",
+			"length" : 16,
+			"divide" : 100
+		},
+		"ds18b20_3_temperature" : {
+			"type" : "int",
+			"length" : 16,
+			"divide" : 100
+		}
+	},
+	"format" : [{
+			"attributes" : ["id"]
+		}, {
+			"if" : "id == 2",
+			"then" : [{
+					"attributes" : ["battery_level", "bpm180_temperature", "bpm180_pression", "dht22_humidite", "dht22_temperature", "dht22_idx_temperature", "poids", "ds18b20_1_temperature", "ds18b20_2_temperature"]
+				}
+			]
+		}, {
+			"if" : "id == 3",
+			"then" : [{
+					"attributes" : ["battery_level", "bpm180_temperature", "bpm180_pression", "dht22_humidite", "dht22_temperature", "dht22_idx_temperature", "poids", "ds18b20_1_temperature", "ds18b20_2_temperature", "ds18b20_3_temperature"]
+				}
+			]
+		}, {
+			"if" : "id == 0"
+		}
+	]
+}
