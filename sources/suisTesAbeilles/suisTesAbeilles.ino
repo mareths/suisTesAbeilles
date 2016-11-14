@@ -101,41 +101,43 @@ long weight;
 OneWire oneWire(ONE_WIRE_BUS);
 // Pass our oneWire reference to Dallas Temperature. 
 DallasTemperature sensors(&oneWire);
+// Array of temperature flag
+bool flagTemp[5] = {false,false,false,false,false};
 // Lenght of message to Objenious platform depends of number of DS18B20 sensors number
 #ifdef DS18B20_1
 byte msgData[18];           // Store the data to be uploaded to Objeniou's Network
 // arrays to hold device addresses
 DeviceAddress sondeNumero1;
 // global variable for temperatureDS18B20_1 and temperatureDS18B20_2
-int temperatureDS18B20_1;
+int temperatureDS18B20_1 = 0;
 #endif
 #ifdef DS18B20_2
 byte msgData[20];           // Store the data to be uploaded to Objeniou's Network
 // arrays to hold device addresses
 DeviceAddress sondeNumero1, sondeNumero2;
 // global variable for temperatureDS18B20_1 and temperatureDS18B20_2
-int temperatureDS18B20_1, temperatureDS18B20_2;
+int temperatureDS18B20_1 = 0, temperatureDS18B20_2 = 0;
 #endif
 #ifdef DS18B20_3
 byte msgData[22];           // Store the data to be uploaded to Objeniou's Network
 // arrays to hold device addresses
 DeviceAddress sondeNumero1, sondeNumero2, sondeNumero3;
 // global variable for temperatureDS18B20_1 and temperatureDS18B20_2
-int temperatureDS18B20_1, temperatureDS18B20_2, temperatureDS18B20_3;
+int temperatureDS18B20_1 = 0, temperatureDS18B20_2 = 0, temperatureDS18B20_3 = 0;
 #endif
 #ifdef DS18B20_4
 byte msgData[24];           // Store the data to be uploaded to Objeniou's Network
 // arrays to hold device addresses
 DeviceAddress sondeNumero1, sondeNumero2, sondeNumero3, sondeNumero4;
 // global variable for temperatureDS18B20_1 and temperatureDS18B20_2
-int temperatureDS18B20_1, temperatureDS18B20_2, temperatureDS18B20_3, temperatureDS18B20_4;
+int temperatureDS18B20_1 = 0, temperatureDS18B20_2 = 0, temperatureDS18B20_3 = 0, temperatureDS18B20_4 = 0;
 #endif
 #ifdef DS18B20_5
 byte msgData[26];           // Store the data to be uploaded to Objeniou's Network
 // arrays to hold device addresses
 DeviceAddress sondeNumero1, sondeNumero2, sondeNumero3, sondeNumero4, sondeNumero5;
 // global variable for temperatureDS18B20_1 and temperatureDS18B20_2
-int temperatureDS18B20_1, temperatureDS18B20_2, temperatureDS18B20_3, temperatureDS18B20_4, temperatureDS18B20_5;
+int temperatureDS18B20_1 = 0, temperatureDS18B20_2 = 0, temperatureDS18B20_3 = 0, temperatureDS18B20_4 = 0, temperatureDS18B20_5 = 0;
 #endif
 
 //Instance of  the class Arm
@@ -304,6 +306,8 @@ msgData[0] = 5; // This byte will indicate to Objeniou's platform what kind
   } else {
   // Sensibilty set at 0.0625°C
     sensors.setResolution(sondeNumero1, 12);
+  // flagTemp true
+    flagTemp[0] = true;
   }
 #endif
 
@@ -315,6 +319,8 @@ msgData[0] = 5; // This byte will indicate to Objeniou's platform what kind
   } else {
   // Sensibilty set at 0.0625°C
     sensors.setResolution(sondeNumero2, 12);
+  // flagTemp true
+    flagTemp[1] = true;
   }
 #endif
 
@@ -326,6 +332,8 @@ msgData[0] = 5; // This byte will indicate to Objeniou's platform what kind
   } else {
   // Sensibilty set at 0.0625°C
     sensors.setResolution(sondeNumero3, 12);
+  // flagTemp true
+    flagTemp[2] = true;
   }
 #endif
 
@@ -337,6 +345,8 @@ msgData[0] = 5; // This byte will indicate to Objeniou's platform what kind
   } else {
   // Sensibilty set at 0.0625°C
     sensors.setResolution(sondeNumero4, 12);
+  // flagTemp true
+    flagTemp[3] = true;
   }
 #endif
 
@@ -348,6 +358,8 @@ msgData[0] = 5; // This byte will indicate to Objeniou's platform what kind
   } else {
   // Sensibilty set at 0.0625°C
     sensors.setResolution(sondeNumero5, 12);
+  // flagTemp true
+    flagTemp[4] = true;
   }
 #endif
 
@@ -590,29 +602,39 @@ void collectData() {
   delay(800);
 
 #if (defined DS18B20_1 || defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
-  temperatureDS18B20_1 = (sensors.getTempC(sondeNumero1)*100);
-  // delay for conversion due to sensibility (i don't know where we should put this delay...)
-  delay(800);
+  if (flagTemp[0]) {
+    temperatureDS18B20_1 = (sensors.getTempC(sondeNumero1)*100);
+    // delay for conversion due to sensibility (i don't know where we should put this delay...)
+    delay(800);
+  }
 #endif
 #if (defined DS18B20_2 || defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
-  temperatureDS18B20_2 = (sensors.getTempC(sondeNumero2)*100);
-  // delay for conversion due to sensibility (i don't know where we should put this delay...)
-  delay(800);
+  if (flagTemp[1]) {
+    temperatureDS18B20_2 = (sensors.getTempC(sondeNumero2)*100);
+    // delay for conversion due to sensibility (i don't know where we should put this delay...)
+    delay(800);
+  }
 #endif
 #if (defined DS18B20_3 || defined DS18B20_4 || defined DS18B20_5)
-  temperatureDS18B20_3 = (sensors.getTempC(sondeNumero3)*100);
-  // delay for conversion due to sensibility (i don't know where we should put this delay...)
-  delay(800);
+  if (flagTemp[2]) {
+    temperatureDS18B20_3 = (sensors.getTempC(sondeNumero3)*100);
+    // delay for conversion due to sensibility (i don't know where we should put this delay...)
+    delay(800);
+  }
 #endif
 #if (defined DS18B20_4 || defined DS18B20_5)
-  temperatureDS18B20_4 = (sensors.getTempC(sondeNumero4)*100);
-  // delay for conversion due to sensibility (i don't know where we should put this delay...)
-  delay(800);
+  if (flagTemp[3]) {
+    temperatureDS18B20_4 = (sensors.getTempC(sondeNumero4)*100);
+    // delay for conversion due to sensibility (i don't know where we should put this delay...)
+    delay(800);
+  }
 #endif
 #if (defined DS18B20_5)
-  temperatureDS18B20_5 = (sensors.getTempC(sondeNumero5)*100);
-  // delay for conversion due to sensibility (i don't know where we should put this delay...)
-  delay(800);
+  if (flagTemp[4]) {
+    temperatureDS18B20_5 = (sensors.getTempC(sondeNumero5)*100);
+    // delay for conversion due to sensibility (i don't know where we should put this delay...)
+    delay(800);
+  }
 #endif
 
   
