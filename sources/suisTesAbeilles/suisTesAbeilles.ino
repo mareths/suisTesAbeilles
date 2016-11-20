@@ -49,7 +49,8 @@ TheAirBoard board;
 
 // Idle mode
 int nbMinuteTimeout = 2; // delay of mode idle
-volatile int timer1=1; // count timer1 cycle before wakeup
+int nbCycleTimeout = 15; // nb cycle to have 1 minute
+volatile int timer1=nbCycleTimeout*nbMinuteTimeout+1; // Set timer at max delay of collecting data, to collect data at boot
 
 // Barometric sensor
 Bmp180 bmp180;
@@ -441,8 +442,8 @@ void loop()
   // Management of the idle mode
   sleepNow();     // Pass to idle mode for 4s
 
-  // 15 timer1 cycle to have one minute
-  if (timer1 > 3*nbMinuteTimeout) {
+  // Test if they should wake up airboard to collect data
+  if (timer1 > nbCycleTimeout*nbMinuteTimeout) {
 #ifdef DEBUG
     mySerial.println("Wake up !");
 #endif
