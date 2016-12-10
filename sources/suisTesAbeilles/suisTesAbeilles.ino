@@ -4,8 +4,8 @@
 
 // Uncomment number of sensor
 //#define DS18B20_1 // 1 DS18B20
-#define DS18B20_2 // 2 DS18B20
-//#define DS18B20_3 // 3 DS18B20
+//#define DS18B20_2 // 2 DS18B20
+ #define DS18B20_3 // 3 DS18B20
 //#define DS18B20_4 // 4 DS18B20
 //#define DS18B20_5 // 5 DS18B20
 
@@ -42,13 +42,13 @@ intégrer via Croquis/Inclure une librairie/Ajouter la bilbiotheque .ZIP*/
 #include <DallasTemperature.h> // for DS18B20 sensor
 // Ajouter la librairie via Croquis/Inclure une librairie/Gerer les bibliothéques, et chercher TheAirboard
 // Librairie est exemples sur https://github.com/theairboard/TheAirBoard/tree/master/arduino/TheAirBoard
-#include <TheAirBoard.h>
+//#include <TheAirBoard.h>
 
 // Permet l'appel aux fonctions du airboard
-TheAirBoard board;
+//TheAirBoard board;
 
 // Idle mode
-int nbMinuteTimeout = 2; // delay of mode idle
+int nbMinuteTimeout = 30; // delay of mode idle
 int nbCycleTimeout = 15; // nb cycle to have 1 minute
 volatile int timer1=nbCycleTimeout*nbMinuteTimeout+1; // Set timer at max delay of collecting data, to collect data at boot
 
@@ -574,7 +574,9 @@ ISR(TIMER1_OVF_vect)
  ***************************************************/
 void collectData() {
   //battery_level
-  battery_level=(board.batteryChk())*100; // collect the battery level
+//  battery_level=(board.batteryChk())*100; // collect the battery level
+  battery_level=readVcc()*10; // collect the battery level
+                                  // multiple by 10 to have an integer value
                                   // multiple by 1000 to have an integer value
   // BMP180
   temperatureBMP180 = (bmp180.getTemperature(bmp180.readUT())*100); // collect the temperature in Celsius,
@@ -582,6 +584,11 @@ void collectData() {
   pressureBMP180 = bmp180.getPressure(bmp180.readUP()); // collect the pressure
   
   // DHT22
+  humidityDHT22 = (dht.readHumidity()*100); // collect hygrometry, multiple by 100 to have an integer value
+  temperatureDHT22 = (dht.readTemperature()*100); // collect the temperature in Celsius,
+                                            // multiple by 100 to have an integer value
+
+  delay(2000);
   humidityDHT22 = (dht.readHumidity()*100); // collect hygrometry, multiple by 100 to have an integer value
   temperatureDHT22 = (dht.readTemperature()*100); // collect the temperature in Celsius,
                                             // multiple by 100 to have an integer value
@@ -846,3 +853,39 @@ void logDebugData() {
 #endif
 
 
+// Returns actual value of Vcc (x 100)
+int readVcc()
+{
+  uint8_t oldADMUX = ADMUX;
+
+//  const long InternalReferenceVoltage = 1358L; // Adjust this value to your boards specific internal BG voltage x1000
+//  const long InternalReferenceVoltage = 1056L; // Adjust this value to your boards specific internal BG voltage x1000
+//  const long InternalReferenceVoltage = 1150L; // Adjust this value to your boards specific internal BG voltage x1000
+  const long InternalReferenceVoltage = 1460L; // Adjust this value to your boards specific internal BG voltage x1000
+
+
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  // For mega boards
+  // REFS1 REFS0          --> 0 1, AVcc internal ref. -Selects AVcc reference
+  // MUX4 MUX3 MUX2 MUX1 MUX0  --> 11110 1.1V (VBG)         -Selects channel 30, bandgap voltage, to measure
+  ADMUX = (0 << REFS1) | (1 << REFS0) | (0 << ADLAR) | (0 << MUX5) | (1 << MUX4) | (1 << MUX3) | (1 << MUX2) | (1 << MUX1) | (0 << MUX0);
+
+#else
+  // For 168/328 boards
+  // REFS1 REFS0          --> 0 1, AVcc internal ref. -Selects AVcc external reference
+  // MUX3 MUX2 MUX1 MUX0  --> 1110 1.1V (VBG)         -Selects channel 14, bandgap voltage, to measure
+  ADMUX = (0 << REFS1) | (1 << REFS0) | (0 << ADLAR) | (1 << MUX3) | (1 << MUX2) | (1 << MUX1) | (0 << MUX0);
+
+#endif
+  delay(50); // Let mux settle a little to get a more stable A/D conversion
+  // Start a conversion
+  ADCSRA |= _BV(ADSC);
+  // Wait for it to complete
+  while (((ADCSRA & (1 << ADSC)) != 0));
+
+  // Scale the value
+  int results = (((InternalReferenceVoltage * 1023L) / ADC) + 3.3L) / 10L; // calculates for straight line value
+
+  return results;
+}
+n;
