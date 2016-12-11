@@ -48,7 +48,7 @@ intégrer via Croquis/Inclure une librairie/Ajouter la bilbiotheque .ZIP*/
 //TheAirBoard board;
 
 // Idle mode
-int nbMinuteTimeout = 30; // delay of mode idle
+int nbMinuteTimeout = 90; // delay of mode idle
 int nbCycleTimeout = 15; // nb cycle to have 1 minute
 volatile int timer1=nbCycleTimeout*nbMinuteTimeout+1; // Set timer at max delay of collecting data, to collect data at boot
 
@@ -887,5 +887,4 @@ int readVcc()
   int results = (((InternalReferenceVoltage * 1023L) / ADC) + 3.3L) / 10L; // calculates for straight line value
 
   return results;
-}
-n;
+}  
