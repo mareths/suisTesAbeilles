@@ -48,8 +48,11 @@ intégrer via Croquis/Inclure une librairie/Ajouter la bilbiotheque .ZIP*/
 //TheAirBoard board;
 
 // Idle mode
-int nbMinuteTimeout = 90; // delay of mode idle
-int nbCycleTimeout = 15; // nb cycle to have 1 minute
+int initTimerDone = 10; // number of test collecting data at the initialisation of the module
+int nbMinuteTimeout = 5; // delay of mode idle at the initialisation of the module
+int nbMinuteTimeoutAfterInitTimer = 90; // seetings of the delay of mode idle after initialisation of the module
+int nbCycleTimeout = 7; // nb cycle to have 1 minute
+
 volatile int timer1=nbCycleTimeout*nbMinuteTimeout+1; // Set timer at max delay of collecting data, to collect data at boot
 
 // Barometric sensor
@@ -433,8 +436,6 @@ digitalWrite(LED_OK, LOW);
 
 void loop()
 {
-
-
 #ifdef DEBUG
   mySerial.println("Go to sleep");
 #endif
@@ -448,7 +449,17 @@ void loop()
     mySerial.println("Wake up !");
 #endif
 
-    // Collect the data from the sensor
+    if (initTimerDone > 0) {
+      initTimerDone--;
+      if (0 == initTimerDone) {
+#ifdef DEBUG
+        mySerial.println("InitTimer Done !");
+#endif
+        nbMinuteTimeout = nbMinuteTimeoutAfterInitTimer;
+      }
+    }
+
+   // Collect the data from the sensor
 #ifdef DEBUG
     mySerial.println("Collecting data...");
 #endif
